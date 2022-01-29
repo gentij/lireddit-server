@@ -1,7 +1,8 @@
 import { Post } from "./entities/post";
-import { __DBUSER__, __DBPASSWORD__, __prod__ } from "./constants";
 import { MikroORM } from "@mikro-orm/core";
 import path from "path";
+
+import { __DBUSER__, __DBPASSWORD__, __prod__ } from "./constants";
 
 export default {
   migrations: {
@@ -10,9 +11,9 @@ export default {
   },
   entities: [Post],
   dbName: "lireddit",
-  type: "postgresql",
   user: __DBUSER__,
-  password: __DBPASSWORD__,
+  ...(__prod__ ? { password: __DBPASSWORD__ } : {}),
+  type: "postgresql",
   debug: !__prod__,
   replicas: [],
 } as Parameters<typeof MikroORM.init>[0];
