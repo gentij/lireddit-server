@@ -11,6 +11,7 @@ import { __PORT__ } from "./constants";
 import mikroOrmConfig from "./mikro-orm.config";
 import { HelloResolver } from "./resolvers/Hello";
 import { PostResolver } from "./resolvers/post";
+import { UserResolver } from "./resolvers/User";
 
 const main = async () => {
   const orm = await MikroORM.init(mikroOrmConfig);
@@ -20,7 +21,7 @@ const main = async () => {
 
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
-      resolvers: [HelloResolver, PostResolver],
+      resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
     context: () => ({ em: orm.em }),
