@@ -2,16 +2,21 @@ import "reflect-metadata";
 import { MikroORM } from "@mikro-orm/core";
 import dotenv from "dotenv";
 import express from "express";
+import cors from "cors";
 import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
+import Redis from "ioredis";
+import session from "express-session";
+import connectRedis from "connect-redis";
 
 dotenv.config();
 
-import { __PORT__ } from "./constants";
+import { __PORT__, __prod__, __SESSION_SECRET__ } from "./constants";
 import mikroOrmConfig from "./mikro-orm.config";
 import { HelloResolver } from "./resolvers/Hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/User";
+import { MyContext } from "./types";
 
 const main = async () => {
   const orm = await MikroORM.init(mikroOrmConfig);
@@ -19,21 +24,50 @@ const main = async () => {
 
   const app = express();
 
+  const RedisStore = connectRedis(session);
+  const redis = new Redis();
+
+  app.set("trust proxy", 1);
+  app.use(
+    cors({
+      origin: process.env.CORS_ORIGIN,
+      credentials: true,
+    })
+  );
+  app.use(
+    session({
+      name: "qid",
+      store: new RedisStore({ client: redis, disableTouch: true }),
+      cookie: {
+        maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
+        httpOnly: true,
+        sameSite: "lax", // csrf
+        secure: __prod__, // cookie only works in https
+        domain: __prod__ ? ".codeponder.com" : undefined,
+      },
+      saveUninitialized: false,
+      secret: __SESSION_SECRET__,
+      resave: false,
+    })
+  );
+
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: () => ({ em: orm.em }),
+    context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
   });
 
   await apolloServer.start();
 
   apolloServer.applyMiddleware({
     app,
-    cors: {
-      origin: "*",
-    },
+    cors: false,
+  });
+
+  app.get("/", (_, res) => {
+    res.send("server root");
   });
 
   app.listen(__PORT__, () => {

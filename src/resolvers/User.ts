@@ -5,11 +5,13 @@ import {
   InputType,
   Mutation,
   ObjectType,
+  Query,
   Resolver,
 } from "type-graphql";
+import argon2 from "argon2";
+
 import { MyContext } from "../types";
 import { User } from "../entities/User";
-import argon2 from "argon2";
 
 @InputType()
 class UsernamePasswordInput {
@@ -39,6 +41,16 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => User, { nullable: true })
+  async me(@Ctx() { req, em }: MyContext): Promise<User | null> {
+    if (!req.session.userId) {
+      return null;
+    }
+
+    const user = await em.findOne(User, { id: req.session.userId });
+    return user;
+  }
+
   @Mutation(() => UserResponse)
   async register(
     @Arg("options", () => UsernamePasswordInput) options: UsernamePasswordInput,
@@ -87,7 +99,7 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async login(
     @Arg("options", () => UsernamePasswordInput) options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     const { username } = options;
     const user = await em.findOne(User, { username });
@@ -115,6 +127,10 @@ export class UserResolver {
         ],
       };
     }
+
+    req.session.userId = user.id;
+
+    console.log(req.session.userId);
 
     return { user };
   }
