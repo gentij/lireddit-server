@@ -30,7 +30,7 @@ const main = async () => {
   app.set("trust proxy", 1);
   app.use(
     cors({
-      origin: process.env.CORS_ORIGIN,
+      origin: ["http://localhost:3000"],
       credentials: true,
     })
   );
@@ -43,7 +43,6 @@ const main = async () => {
         httpOnly: true,
         sameSite: "lax", // csrf
         secure: __prod__, // cookie only works in https
-        domain: __prod__ ? ".codeponder.com" : undefined,
       },
       saveUninitialized: false,
       secret: __SESSION_SECRET__,

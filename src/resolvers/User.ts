@@ -54,7 +54,7 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async register(
     @Arg("options", () => UsernamePasswordInput) options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     if (options.username.length <= 2) {
       return {
@@ -93,6 +93,9 @@ export class UserResolver {
     const hash = await argon2.hash(options.password);
     const user = em.create(User, { ...options, password: hash });
     await em.persistAndFlush(user);
+
+    req.session.userId = user.id;
+
     return { user };
   }
 
@@ -129,8 +132,6 @@ export class UserResolver {
     }
 
     req.session.userId = user.id;
-
-    console.log(req.session.userId);
 
     return { user };
   }
