@@ -3,3 +3,4 @@ export const __DBUSER__ = process.env.DB_USER;
 export const __DBPASSWORD__ = process.env.DB_PASSWORD;
 export const __PORT__ = process.env.PORT;
 export const __SESSION_SECRET__ = process.env.SESSION_SECRET!;
+export const __COOKIE_NAME__ = "qid";

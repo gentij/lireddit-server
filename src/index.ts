@@ -11,7 +11,12 @@ import connectRedis from "connect-redis";
 
 dotenv.config();
 
-import { __PORT__, __prod__, __SESSION_SECRET__ } from "./constants";
+import {
+  __COOKIE_NAME__,
+  __PORT__,
+  __prod__,
+  __SESSION_SECRET__,
+} from "./constants";
 import mikroOrmConfig from "./mikro-orm.config";
 import { HelloResolver } from "./resolvers/Hello";
 import { PostResolver } from "./resolvers/post";
@@ -36,7 +41,7 @@ const main = async () => {
   );
   app.use(
     session({
-      name: "qid",
+      name: __COOKIE_NAME__,
       store: new RedisStore({ client: redis, disableTouch: true }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
