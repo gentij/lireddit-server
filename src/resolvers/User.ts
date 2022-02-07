@@ -12,12 +12,14 @@ import argon2 from "argon2";
 
 import { MyContext } from "../types";
 import { User } from "../entities/User";
-import { __COOKIE_NAME__ } from "../constants";
+import { __COOKIE_NAME__, __EMAIL_REGEX__ } from "../constants";
 
 @InputType()
 class UsernamePasswordInput {
   @Field()
   username: string;
+  @Field()
+  email: string;
   @Field()
   password: string;
 }
@@ -42,6 +44,16 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Mutation(() => Boolean)
+  async forgotPassword(
+    @Arg("email") email: string,
+    @Ctx() { em }: MyContext
+  ): Promise<boolean> {
+    const user = await em.findOne(User, { email });
+    console.log(user);
+    return true;
+  }
+
   @Query(() => User, { nullable: true })
   async me(@Ctx() { req, em }: MyContext): Promise<User | null> {
     if (!req.session.userId) {
@@ -57,6 +69,8 @@ export class UserResolver {
     @Arg("options", () => UsernamePasswordInput) options: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
+    console.log("hej bre hahaahah", options);
+
     if (options.username.length <= 2) {
       return {
         errors: [
@@ -65,6 +79,11 @@ export class UserResolver {
             message: "Username length must be greater than 2",
           },
         ],
+      };
+    }
+    if (!options.email.match(__EMAIL_REGEX__)) {
+      return {
+        errors: [{ field: "email", message: "Enter a valid email" }],
       };
     }
 
@@ -102,11 +121,14 @@ export class UserResolver {
 
   @Mutation(() => UserResponse)
   async login(
-    @Arg("options", () => UsernamePasswordInput) options: UsernamePasswordInput,
+    @Arg("usernameOrEmail", () => String) usernameOrEmail: string,
+    @Arg("password", () => String) password: string,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    const { username } = options;
-    const user = await em.findOne(User, { username });
+    const query = usernameOrEmail.match(__EMAIL_REGEX__)
+      ? { email: usernameOrEmail }
+      : { username: usernameOrEmail };
+    const user = await em.findOne(User, query);
 
     if (!user) {
       return {
@@ -119,7 +141,7 @@ export class UserResolver {
       };
     }
 
-    const valid = await argon2.verify(user.password, options.password);
+    const valid = await argon2.verify(user.password, password);
 
     if (!valid) {
       return {
